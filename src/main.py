@@ -1,3 +1,4 @@
+from matplotlib.ticker import PercentFormatter
 from tqdm import tqdm
 from evaluate import evaluate
 from pairwise_comparison import (
@@ -50,7 +51,9 @@ def make_plot(precisions, recalls, fscores, best_threshold):
 
     plt.xlabel("Threshold")
     plt.ylabel("Percentage")
-    plt.title("Precision, Recall, F-score vs Threshold for EA Data \n Using Relative Edit Distance with Phonetic Features")
+    plt.title(
+        "Precision, Recall, F-score vs Threshold for EA Data \n Using Relative Edit Distance with Phonetic Features"
+    )
     plt.legend()
 
     plt.tight_layout()
@@ -58,18 +61,63 @@ def make_plot(precisions, recalls, fscores, best_threshold):
     plt.close()
 
 
-if __name__ == "__main__":
-    forms = get_data(sys.argv[1])
-    gold = get_data(sys.argv[2])
+# def make_distribution_plot(precisions, recalls, fscores, title, path):
+def make_distribution_plot(fscores, title, path):
+    plt.figure(figsize=(8, 4))
 
-    dst = Distance()
-    relative_edit_distance = relative_distance(dst.hamming_feature_edit_distance)
-    precisions, recalls, fscores, best_threshold = test_every_cent(
-        forms, gold, relative_edit_distance
+    xbins = np.arange(0, 1.01, 0.2)
+
+    plt.hist(
+        fscores,
+        bins=xbins,
+        density=True,
+        histtype="bar",
+        label=["F-score"],
+        color=["green"],
     )
-    make_plot(precisions, recalls, fscores, best_threshold)
 
-    estimated_cognates = get_cognates(forms, relative_edit_distance, threshold=best_threshold)
-    (p, r, f1), evaluation = evaluate(estimated_cognates, gold)
-    print(f'Precision: {p:.2%}; Recall: {r:.2%}; F-score: {f1:.2%}')
-    df2tsv(evaluation, f'ea_data_phonetic_feature_{best_threshold}.tsv')
+    plt.gca().xaxis.set_major_formatter(PercentFormatter(xmax=1))
+    plt.gca().yaxis.set_major_formatter(PercentFormatter(xmax=10))
+
+    plt.title(title)
+    # plt.legend(prop={"size": 15})
+    # plt.legend()
+    plt.tight_layout()
+    plt.savefig(path)
+    plt.close()
+
+
+if __name__ == "__main__":
+    # forms = get_data(sys.argv[1])
+    # gold = get_data(sys.argv[2])
+
+    # dst = Distance()
+    # relative_edit_distance = relative_distance(
+    #     dst.hamming_feature_edit_distance
+    # )
+    # precisions, recalls, fscores, best_threshold = test_every_cent(
+    #     forms, gold, relative_edit_distance
+    # )
+    # make_plot(precisions, recalls, fscores, best_threshold)
+
+    # estimated_cognates = get_cognates(
+    #     forms, relative_edit_distance, threshold=best_threshold
+    # )
+    # (p, r, f1), evaluation = evaluate(estimated_cognates, gold)
+    # print(f"Precision: {p:.2%}; Recall: {r:.2%}; F-score: {f1:.2%}")
+    # df2tsv(evaluation, f"ea_data_phonetic_feature_{best_threshold}.tsv")
+
+    evaluation_file = sys.argv[1]
+    evaluation = get_data(evaluation_file)
+
+    precisions = evaluation["precision"]
+    recalls = evaluation["recall"]
+    fscores = evaluation["fscore"]
+
+    make_distribution_plot(
+        # precisions,
+        # recalls,
+        fscores,
+        title=f"F-score Distribution for EA Data Using Relative Edit Distance \n with Phonetic Features (threshold=0.09; n={len(fscores)})",
+        path="img/ea_phonetic_features_distribution.png",
+    )
