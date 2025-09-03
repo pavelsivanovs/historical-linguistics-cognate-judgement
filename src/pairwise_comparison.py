@@ -1,11 +1,10 @@
-from utils import df2tsv, get_data
-
 import sys
-from typing import Callable
+from typing import Any, Callable
 
 import pandas as pd
 from panphon.distance import Distance
 
+from utils import df2tsv, get_data
 
 # TODO: barbacone
 
@@ -71,7 +70,7 @@ def get_cognate_groups(
 
 def get_cognates(
     forms: pd.DataFrame, get_distance: Callable, threshold: float
-) -> pd.DataFrame:
+) -> pd.Series | pd.DataFrame:
     """
     Return groups of cognates.
 
@@ -107,9 +106,7 @@ def get_cognates(
 
                 distances[(lang1, lang2)] = get_distance(form1, form2)
 
-        cognate_groups = get_cognate_groups(
-            none_cognate_groups, distances, threshold
-        )
+        cognate_groups = get_cognate_groups(none_cognate_groups, distances, threshold)
         estimated_cognate_groups.append({"sense": sense} | cognate_groups)
 
     estimated_cognate_groups = pd.DataFrame(estimated_cognate_groups)
@@ -117,7 +114,7 @@ def get_cognates(
     return estimated_cognate_groups
 
 
-def relative_distance(get_distance: callable) -> callable:
+def relative_distance(get_distance: Callable) -> Callable:
     def get_relative_distance(f1, f2):
         edit_distance = get_distance(f1, f2)
         longest_form_len = max(len(f1), len(f2))
@@ -134,7 +131,5 @@ if __name__ == "__main__":
     dst = Distance()
     relative_edit_distance = relative_distance(dst.fast_levenshtein_distance)
 
-    estimated_cognates = get_cognates(
-        forms, relative_edit_distance, threshold=0.85
-    )
+    estimated_cognates = get_cognates(forms, relative_edit_distance, threshold=0.85)
     df2tsv(estimated_cognates, destination_path)
